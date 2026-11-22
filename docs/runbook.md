@@ -59,6 +59,16 @@ pnpm --filter @rosterra/ui test:storybook          # interaction + a11y (test-ru
 # Требуется браузер: pnpm --filter @rosterra/ui exec playwright install chromium
 ```
 
+Федерация end-to-end (браузер; нужны запущенные shell/remotes/auth):
+
+```powershell
+cd apps/shell && pnpm exec playwright test -c playwright.m4.config.ts
+```
+
+> **Важно:** после пересборки shell (`pnpm build`) перезапустите его процесс
+> (`node apps/shell/.output/server/index.mjs`) — запущенный nitro держит
+> старые имена чанков в памяти.
+
 ## Типовые проблемы (Windows)
 
 - **`go` не найден в новой консоли** — перезапустите терминал после добавления
