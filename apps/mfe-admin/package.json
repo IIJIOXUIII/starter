@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@rosterra/ui": "workspace:*",
+    "@tanstack/vue-table": "^8.21.3",
     "vue": "^3.5.0"
   },
   "devDependencies": {

@@ -13,12 +13,15 @@
 | M2 auth-service (Argon2id, JWT+JWKS, ротация refresh, reuse detection, outbox→NATS)           | ✅     |
 | M3 BFF (httpOnly cookie-сессии, прозрачный refresh, rate limit, CSRF guard)                   | ✅     |
 | M4 микрофронты (MF 2.0 islands), Storybook (interaction/a11y/visual), формы входа/регистрации | ✅     |
-| M5 users-service + админка (таблица, редактирование)                                          | ⏳     |
+| M5 users-service (профили, NATS-consumer, gRPC) + живая админка (таблица, карточка, RBAC)     | ✅     |
 | M6 наблюдаемость (OTel, Grafana) · M7 Helm/K8s · M8 e2e-полировка                             | ⏳     |
 
 Что уже работает end-to-end: регистрация → вход → cookie-сессия → прозрачный refresh →
-выход; JWKS; события user.*/role_changed в NATS; Storybook дизайн-системы с тремя
-видами тестов компонентов; федерация островов в реальном браузере.
+выход; JWKS; события user.\*/role_changed в NATS; **профили создаются consumer'ом
+users-service по user.created** (включая backfill из истории стрима); админка:
+агрегированный список (auth + users через BFF), карточка с редактированием
+профиля/статуса/ролей, RBAC-guard; Storybook дизайн-системы с тремя видами тестов
+компонентов; федерация островов в реальном браузере.
 
 ## Структура
 

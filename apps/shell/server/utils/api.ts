@@ -30,5 +30,22 @@ export function authorizedAuthClient(token: string) {
   return client;
 }
 
-/** Клиент users-service (профили) — пригодится в M5. */
+/** Клиент users-service (профили). */
 export const usersClient = createUsersClient(USERS_BASE);
+
+/**
+ * Клиент users-service с Authorization-заголовком.
+ *
+ * @param token - access-JWT из cookie сессии.
+ * @returns клиент, добавляющий Bearer ко всем вызовам.
+ */
+export function authorizedUsersClient(token: string) {
+  const client = createUsersClient(USERS_BASE);
+  client.use({
+    onRequest({ request }) {
+      request.headers.set('Authorization', `Bearer ${token}`);
+      return request;
+    },
+  });
+  return client;
+}

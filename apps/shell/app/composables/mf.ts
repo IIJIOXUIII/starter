@@ -8,7 +8,10 @@ import { init, loadRemote } from '@module-federation/runtime';
 
 /** Контракт MF-острова: mount создаёт независимое Vue-приложение. */
 export interface RemotePage {
-  mount(el: HTMLElement, opts?: { navigate?: (path: string) => void }): { unmount(): void };
+  mount(
+    el: HTMLElement,
+    opts?: { navigate?: (path: string) => void; params?: Record<string, string> },
+  ): { unmount(): void };
 }
 
 let initialized = false;

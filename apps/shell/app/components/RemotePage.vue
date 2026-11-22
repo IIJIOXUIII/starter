@@ -11,6 +11,8 @@ import { loadRemotePage } from '../composables/mf';
 const props = defineProps<{
   /** Имя модуля remote'а, например 'mfe_auth/LoginPage'. */
   moduleName: string;
+  /** Параметры пути для острова (например, { id } карточки админки). */
+  params?: Record<string, string>;
 }>();
 
 const hostEl = ref<HTMLElement | null>(null);
@@ -23,6 +25,7 @@ onMounted(async () => {
     if (hostEl.value) {
       const app = page.mount(hostEl.value, {
         navigate: (path) => window.location.assign(path),
+        params: props.params,
       });
       unmount = () => app.unmount();
       state.value = 'ready';
@@ -48,5 +51,6 @@ onBeforeUnmount(() => unmount?.());
 .remote-host {
   display: flex;
   justify-content: center;
+  width: 100%;
 }
 </style>

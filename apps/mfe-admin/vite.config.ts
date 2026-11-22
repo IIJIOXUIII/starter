@@ -11,6 +11,7 @@ export default defineConfig({
       filename: 'remoteEntry.js',
       exposes: {
         './UsersPage': './src/app/users-page.ts',
+        './UserEditPage': './src/app/user-edit-page.ts',
       },
       manifest: true,
       remotes: {},

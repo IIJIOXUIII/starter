@@ -44,12 +44,12 @@ test('успешный логин обновляет шапку shell', async ({
   await page.waitForURL('**/');
   await expect(page.getByText(email)).toBeVisible({ timeout: 15_000 });
 
-  // Админка доступна по ссылке (плейсхолдер острова admin).
+  // Админка для обычного пользователя — отказ RBAC-guard острова (M5: живая админка).
   await page.goto('/admin/users');
-  await expect(page.getByText('появится в M5')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText(/Недостаточно прав/)).toBeVisible({ timeout: 20_000 });
 });
 
-test('admin-остров грузится как плейсхолдер', async ({ page }) => {
+test('admin-остров грузится и защищён guard-ом (аноним)', async ({ page }) => {
   await page.goto('/admin/users');
-  await expect(page.getByText('появится в M5')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText(/Недостаточно прав/)).toBeVisible({ timeout: 20_000 });
 });

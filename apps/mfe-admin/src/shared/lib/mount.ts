@@ -8,6 +8,8 @@ import { createApp, type App } from 'vue';
 export interface MountOptions {
   /** Навигация средствами хоста (shell-роутер). */
   navigate?: (path: string) => void;
+  /** Параметры из пути shell-роута (например, { id } для карточки). */
+  params?: { id?: string };
 }
 
 /** Ключ provide для экранов. */
@@ -37,6 +39,7 @@ export function mountComponent(
 ): App {
   const app = createApp(component);
   app.provide(NAVIGATE_KEY, opts?.navigate ?? defaultNavigate);
+  app.provide('mfe:params', opts?.params ?? {});
   app.mount(el);
   return app;
 }

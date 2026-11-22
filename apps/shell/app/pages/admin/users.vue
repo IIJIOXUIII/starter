@@ -1,19 +1,8 @@
 <script setup lang="ts">
-useHead({ title: 'Админка — пользователи — Rosterra' });
+// Родительский layout вложенного роута /admin/users/**: только слот.
+// Список — users/index.vue, карточка — users/[id].vue.
 </script>
 
 <template>
-  <ClientOnly>
-    <RemotePage module-name="mfe_admin/UsersPage" />
-    <template #fallback>
-      <p class="page-fallback">Загрузка админки…</p>
-    </template>
-  </ClientOnly>
+  <NuxtPage />
 </template>
-
-<style scoped>
-.page-fallback {
-  text-align: center;
-  color: var(--ui-color-text-muted);
-}
-</style>

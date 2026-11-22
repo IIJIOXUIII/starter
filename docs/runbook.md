@@ -62,8 +62,28 @@ pnpm --filter @rosterra/ui test:storybook          # interaction + a11y (test-ru
 Федерация end-to-end (браузер; нужны запущенные shell/remotes/auth):
 
 ```powershell
-cd apps/shell && pnpm exec playwright test -c playwright.m4.config.ts
+cd apps/shell && pnpm exec playwright test -c playwright.m4.config.ts   # M4: острова входа/регистрации
+cd apps/shell && pnpm exec playwright test -c playwright.m5.config.ts   # M5: живая админка
 ```
+
+## users-service (M5)
+
+Профили пользователей: HTTP `:8082` (strict-server users.yaml), gRPC `:9082` (users.v1),
+consumer событий auth (`svc.auth.user.created` → создание профиля, dedup по event id),
+outbox-релей `svc.users.>` (stream `ROSTERRA_USERS`).
+
+```powershell
+$env:Path = "C:\Users\zaits\AppData\Local\Programs\go\bin;$env:Path"
+go build -o $env:TEMP\users-m5.exe ./cmd/users   # в services/users
+$env:JWT_SEED = '00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff'
+$env:POSTGRES_DSN = 'postgres://rosterra:rosterra@localhost:55432/rosterra?sslmode=disable'
+$env:NATS_URL = 'nats://localhost:4222'
+& "$env:TEMP\users-m5.exe"
+```
+
+Нюанс: в dev auth и users живут в одной БД — миграции users нумеруются с 10000
+(общий goose_db_version), таблицы users-сервиса: `profiles`, `processed_events`,
+`users_outbox` (у auth — своя `outbox`).
 
 > **Важно:** после пересборки shell (`pnpm build`) перезапустите его процесс
 > (`node apps/shell/.output/server/index.mjs`) — запущенный nitro держит
