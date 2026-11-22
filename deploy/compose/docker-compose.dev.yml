@@ -14,7 +14,9 @@ services:
     ports:
       - '${POSTGRES_PORT:-5432}:5432'
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      # PG18+: маунт в /var/lib/postgresql — данные лягут в версионный подкаталог
+      # (например /var/lib/postgresql/18/docker), что упростит pg_upgrade в будущем.
+      - pgdata:/var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-rosterra} -d ${POSTGRES_DB:-rosterra}']
       interval: 5s
