@@ -11,6 +11,17 @@ export default defineNuxtConfig({
     strict: true,
   },
 
+  // BFF: адреса Go-сервисов (переопределяются env: NUXT_AUTH_BASE, NUXT_USERS_BASE).
+  runtimeConfig: {
+    authBase: 'http://localhost:8081',
+    usersBase: 'http://localhost:8082',
+  },
+
+  // TS-исходники workspace-пакетов должны транспилироваться и в SSR, и в клиент.
+  build: {
+    transpile: ['@rosterra/api-client', '@rosterra/ui', '@rosterra/utils'],
+  },
+
   app: {
     head: {
       title: 'Rosterra',
