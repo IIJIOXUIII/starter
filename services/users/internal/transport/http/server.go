@@ -29,7 +29,7 @@ func NewServer(cfg *config.Config, log *slog.Logger) *Server {
 		fmt.Fprint(w, `{"service":"users"}`)
 	})
 
-	srv := httpx.NewServer(fmt.Sprintf(":%d", cfg.HTTPPort), mux, log)
+	srv := httpx.New(fmt.Sprintf(":%d", cfg.HTTPPort), mux, log)
 	srv.SetReady(true) // В M5 — только после успешной инициализации PG/NATS.
 
 	return &Server{httpx: srv}

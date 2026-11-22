@@ -3,7 +3,7 @@
 // Генерация: buf generate (см. buf.gen.yaml) → services/users/gen.
 syntax = "proto3";
 
-package rosterra.users.v1;
+package users.v1;
 
 import "google/protobuf/timestamp.proto";
 
@@ -26,8 +26,16 @@ message CreateProfileRequest {
   string avatar_url = 3;
 }
 
+message CreateProfileResponse {
+  Profile profile = 1;
+}
+
 message GetProfileRequest {
   string user_id = 1;
+}
+
+message GetProfileResponse {
+  Profile profile = 1;
 }
 
 message UpdateProfileRequest {
@@ -37,10 +45,14 @@ message UpdateProfileRequest {
   string notes = 4;
 }
 
+message UpdateProfileResponse {
+  Profile profile = 1;
+}
+
 // UsersService — синхронные межсервисные операции с профилями.
 service UsersService {
   // CreateProfile вызывается auth-service при регистрации (user.created).
-  rpc CreateProfile(CreateProfileRequest) returns (Profile);
-  rpc GetProfile(GetProfileRequest) returns (Profile);
-  rpc UpdateProfile(UpdateProfileRequest) returns (Profile);
+  rpc CreateProfile(CreateProfileRequest) returns (CreateProfileResponse);
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
 }
