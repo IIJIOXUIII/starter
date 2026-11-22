@@ -1,0 +1,184 @@
+openapi: 3.1.0
+info:
+  title: Rosterra Users Service
+  version: 0.1.0
+  description: |
+    Профили пользователей (user_id = id из auth-service).
+
+    - Профили создаёт users-service при событии `user.created` (gRPC CreateProfile от auth).
+    - Чтение: владелец профиля или admin.
+    - Изменение: владелец (своего профиля) или admin.
+    - Статусы и роли — НЕ здесь: их владелец auth-service.
+    - Единый error-envelope: `{ code, message, details? }`.
+servers:
+  - url: http://localhost:8082
+    description: local dev
+tags:
+  - name: profiles
+security:
+  - bearerAuth: []
+
+paths:
+  /v1/profiles:
+    get:
+      operationId: listProfiles
+      tags: [profiles]
+      summary: Профили по списку id (batch для агрегации в BFF)
+      parameters:
+        - name: ids
+          in: query
+          required: true
+          description: UUID через запятую, максимум 100
+          schema:
+            type: string
+            maxLength: 3800
+      responses:
+        '200':
+          description: Найденные профили (без пагинации; отсутствующие id просто не вернутся)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileList'
+        '400':
+          description: Некорректный параметр ids (code=validation_failed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Недостаточно прав (code=forbidden)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/profiles/{user_id}:
+    get:
+      operationId: getProfile
+      tags: [profiles]
+      summary: Профиль пользователя
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Профиль
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '404':
+          description: Не найден (code=not_found)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    patch:
+      operationId: updateProfile
+      tags: [profiles]
+      summary: Обновить профиль (переданные поля; null — очистить)
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Обновлённый профиль; публикуется profile.updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '400':
+          description: Некорректные данные (code=validation_failed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Недостаточно прав (code=forbidden)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Не найден (code=not_found)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    UserId:
+      name: user_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    Error:
+      type: object
+      description: Единый error-envelope всех сервисов платформы
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            type: object
+            required: [field, message]
+            properties:
+              field: { type: string }
+              message: { type: string }
+
+    Profile:
+      type: object
+      required: [user_id, display_name, created_at, updated_at]
+      properties:
+        user_id: { type: string, format: uuid }
+        display_name: { type: string, maxLength: 100 }
+        avatar_url:
+          type: [string, 'null']
+          maxLength: 2048
+        notes:
+          type: [string, 'null']
+          maxLength: 2000
+          description: Служебные заметки (только admin)
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    UpdateProfileRequest:
+      type: object
+      minProperties: 1
+      properties:
+        display_name:
+          type: [string, 'null']
+          maxLength: 100
+        avatar_url:
+          type: [string, 'null']
+          maxLength: 2048
+        notes:
+          type: [string, 'null']
+          maxLength: 2000
+
+    ProfileList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Profile' }

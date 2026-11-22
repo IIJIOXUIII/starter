@@ -1,0 +1,27 @@
+{
+  "name": "@rosterra/api-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "СГЕНЕРИРОВАНО из api/openapi/*.yaml. Ручные правки gen/ запрещены — только регенерация: pnpm gen:api",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate:auth": "openapi-typescript ../../api/openapi/auth.yaml -o src/gen/auth.d.ts",
+    "generate:users": "openapi-typescript ../../api/openapi/users.yaml -o src/gen/users.d.ts",
+    "generate": "pnpm run generate:auth && pnpm run generate:users",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.14.0"
+  },
+  "devDependencies": {
+    "@rosterra/eslint-config": "workspace:*",
+    "@rosterra/tsconfig": "workspace:*",
+    "eslint": "^9.30.0",
+    "openapi-typescript": "^7.9.0",
+    "typescript": "^5.9.0"
+  }
+}

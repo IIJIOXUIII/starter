@@ -1,0 +1,452 @@
+openapi: 3.1.0
+info:
+  title: Rosterra Auth Service
+  version: 0.1.0
+  description: |
+    Регистрация, аутентификация, сессии (JWT) и роли (RBAC).
+
+    - Access-токен: JWT (EdDSA), TTL 15 минут, передаётся как `Authorization: Bearer <token>`.
+    - Refresh-токен: opaque, TTL 30 дней, ротация при каждом обновлении (reuse detection).
+    - Роли: `user` (по умолчанию), `admin`. Эндпоинты `/v1/admin/**` — только для admin.
+    - Единый error-envelope: `{ code, message, details? }`.
+servers:
+  - url: http://localhost:8081
+    description: local dev
+tags:
+  - name: auth
+    description: Аутентификация и сессии
+  - name: admin
+    description: Административные операции (role=admin)
+  - name: public
+    description: Публичные эндпоинты без авторизации
+security:
+  - bearerAuth: []
+
+paths:
+  /v1/register:
+    post:
+      operationId: register
+      tags: [auth, public]
+      summary: Регистрация нового пользователя
+      description: |
+        Создаёт пользователя (status=active, email_verified=false), хеширует пароль
+        (Argon2id), создаёт refresh-сессию в Redis и публикует событие `user.created`.
+        Возвращает полную сессию (авто-логин).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Пользователь создан, сессия выдана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionTokens'
+        '400':
+          description: Некорректные данные запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Email уже зарегистрирован (code=email_already_exists)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/login:
+    post:
+      operationId: login
+      tags: [auth, public]
+      summary: Вход по email и паролю
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Сессия выдана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionTokens'
+        '401':
+          description: Неверный email или пароль (code=invalid_credentials)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '423':
+          description: Аккаунт заблокирован (code=account_locked)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/refresh:
+    post:
+      operationId: refresh
+      tags: [auth, public]
+      summary: Обновление сессии (ротация refresh-токена)
+      description: |
+        Обменивает refresh-токен на новую пару токенов. Повторное использование
+        уже ротированного refresh-токена отзывает всю цепочку сессий (reuse detection).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Новая пара токенов (старый refresh отозван)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionTokens'
+        '401':
+          description: Refresh-токен невалиден/отозван (code=invalid_refresh_token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Выход (отзыв refresh-сессии)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+      responses:
+        '204':
+          description: Сессия отозвана
+        '401':
+          description: Не авторизован (code=unauthorized)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Текущий пользователь
+      responses:
+        '200':
+          description: Данные текущего пользователя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Не авторизован (code=unauthorized)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/admin/users:
+    get:
+      operationId: adminListUsers
+      tags: [admin]
+      summary: Список пользователей (пагинация, поиск, фильтры)
+      parameters:
+        - name: query
+          in: query
+          description: Поиск по подстроке email
+          schema: { type: string, maxLength: 100 }
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/UserStatus' }
+        - name: role
+          in: query
+          schema: { $ref: '#/components/schemas/Role' }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Страница пользователей
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPage'
+        '403':
+          description: Недостаточно прав (code=forbidden)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/admin/users/{id}:
+    get:
+      operationId: adminGetUser
+      tags: [admin]
+      summary: Пользователь по id
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Пользователь
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: Не найден (code=not_found)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/admin/users/{id}/status:
+    patch:
+      operationId: adminSetUserStatus
+      tags: [admin]
+      summary: Изменить статус пользователя (блокировка/разблокировка)
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserStatusRequest'
+      responses:
+        '200':
+          description: Обновлённый пользователь; публикуется user.blocked/user.unblocked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Некорректный статус (code=validation_failed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Не найден (code=not_found)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/admin/users/{id}/roles:
+    put:
+      operationId: adminSetUserRoles
+      tags: [admin]
+      summary: Заменить набор ролей пользователя
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetUserRolesRequest'
+      responses:
+        '200':
+          description: Обновлённый пользователь; публикуется user.role_changed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Некорректные роли (code=validation_failed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Не найден (code=not_found)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /.well-known/jwks.json:
+    get:
+      operationId: getJwks
+      tags: [public]
+      summary: Публичные ключи подписи JWT (JWKS)
+      description: |
+        Сервисы платформы кешируют этот набор и проверяют access-токены
+        по `kid`. Ротация ключей — добавление нового ключа в набор.
+      security: []
+      responses:
+        '200':
+          description: JWKS-документ (RFC 7517)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonWebKeySet'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    UserId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    Error:
+      type: object
+      description: Единый error-envelope всех сервисов платформы
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: |
+            Машиночитаемый код: validation_failed | unauthorized | forbidden |
+            not_found | invalid_credentials | account_locked |
+            email_already_exists | invalid_refresh_token | internal
+        message:
+          type: string
+          description: Человекочитаемое сообщение (безопасное для показа)
+        details:
+          type: array
+          items:
+            type: object
+            required: [field, message]
+            properties:
+              field: { type: string }
+              message: { type: string }
+
+    UserStatus:
+      type: string
+      enum: [active, blocked]
+
+    Role:
+      type: string
+      enum: [user, admin]
+
+    User:
+      type: object
+      required: [id, email, status, roles, email_verified, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        name:
+          type: [string, 'null']
+          maxLength: 100
+        status: { $ref: '#/components/schemas/UserStatus' }
+        roles:
+          type: array
+          items: { $ref: '#/components/schemas/Role' }
+        email_verified: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    SessionTokens:
+      type: object
+      required: [access_token, token_type, expires_in, refresh_token, refresh_expires_in, user]
+      properties:
+        access_token: { type: string, description: JWT access-токен (EdDSA) }
+        token_type: { type: string, enum: [Bearer] }
+        expires_in: { type: integer, description: TTL access-токена в секундах }
+        refresh_token: { type: string, description: Opaque refresh-токен }
+        refresh_expires_in: { type: integer, description: TTL refresh-токена в секундах }
+        user: { $ref: '#/components/schemas/User' }
+
+    RegisterRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 8, maxLength: 128 }
+        name:
+          type: string
+          maxLength: 100
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+        remember_me:
+          type: boolean
+          default: false
+          description: true — refresh TTL 30 дней, false — 12 часов
+
+    RefreshRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token: { type: string }
+
+    LogoutRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token: { type: string }
+
+    UpdateUserStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status: { $ref: '#/components/schemas/UserStatus' }
+        reason:
+          type: string
+          maxLength: 500
+          description: Причина блокировки (попадает в audit-лог)
+
+    SetUserRolesRequest:
+      type: object
+      required: [roles]
+      properties:
+        roles:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/Role' }
+
+    UserPage:
+      type: object
+      required: [items, total, page, per_page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/User' }
+        total: { type: integer }
+        page: { type: integer }
+        per_page: { type: integer }
+
+    JsonWebKeySet:
+      type: object
+      required: [keys]
+      properties:
+        keys:
+          type: array
+          items:
+            type: object
+            description: JWK (RFC 7517), включая kid и alg
+            additionalProperties: true

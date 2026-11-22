@@ -1,0 +1,9 @@
+# oapi-codegen (v2) — генерация strict-server из api/openapi/users.yaml
+# Запуск: cd services/users && go tool oapi-codegen -config oapi-codegen.yaml ../../api/openapi/users.yaml
+package: gen
+generate:
+  models: true
+  chi-server: true
+  strict-server: true
+  embedded-spec: true
+output: internal/transport/http/api/gen/api.gen.go
