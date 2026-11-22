@@ -47,6 +47,6 @@ gen-go:
     cd services/auth && go tool oapi-codegen -config oapi-codegen.yaml ../../api/openapi/auth.yaml
     cd services/users && go tool oapi-codegen -config oapi-codegen.yaml ../../api/openapi/users.yaml
 
-# Сгенерировать Go gRPC-стабы из proto (buf)
+# Сгенерировать Go gRPC-стабы из proto (buf) — buf ищет buf.gen.yaml в текущем каталоге
 gen-proto:
-    buf generate api/proto
+    cd api/proto; buf generate

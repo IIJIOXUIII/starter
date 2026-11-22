@@ -40,9 +40,19 @@ just gen-proto  # Go gRPC-стабы (buf) — требует buf и protoc-пл
 - **`go` не найден в новой консоли** — перезапустите терминал после добавления
   в PATH или добавьте `%LOCALAPPDATA%\Programs\go\bin` вручную.
 - **pnpm заблокировал build-скрипты** — разрешённые пакеты перечислены в
-  `pnpm-workspace.yaml` (`onlyBuiltDependencies`); после изменения выполните
-  `pnpm rebuild <имя>`.
+  `pnpm-workspace.yaml` (`onlyBuiltDependencies`); при установке используйте
+  `pnpm install --allow-build=esbuild` (или `pnpm approve-builds`).
 - **Порты заняты** — переопределите через `deploy/compose/.env` (шаблон —
   `.env.example`).
 - **Долгий первый `pnpm install`** — норма (Nuxt + Vite); кеш pnpm store
   ускоряет последующие установки.
+
+## Установленное окружение на этой машине
+
+- Go 1.27.4 — `%LOCALAPPDATA%\Programs\go` (путь добавлен в user PATH).
+- pnpm 12.21.0 — глобальный npm-пакет.
+- buf 1.75.0, protoc-gen-go, protoc-gen-go-grpc — `%USERPROFILE%\go\bin`.
+- golangci-lint — локально не ставился (проверяет CI); при желании:
+  `go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest`.
+- Docker Desktop — установлен, но при первом запуске требует интерактивной
+  настройки; после неё выполните `pnpm compose:up`.
