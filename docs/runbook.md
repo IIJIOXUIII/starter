@@ -35,6 +35,30 @@ just gen-go     # Go strict-server (oapi-codegen) для auth/users
 just gen-proto  # Go gRPC-стабы (buf) — требует buf и protoc-плагинов (go install)
 ```
 
+## Запуск микрофронтов (M4+)
+
+Терминология: **shell** (:3000) — Nuxt-хост; **remotes** (:5173 mfe-auth, :5174 mfe-admin) —
+Vite-приложения, грузимые shell'ом через Module Federation (mf-manifest.json).
+
+```powershell
+# Терминал 1-2: remotes (или build + preview из собранного dist)
+pnpm --filter @rosterra/mfe-auth dev      # :5173
+pnpm --filter @rosterra/mfe-admin dev     # :5174
+# Терминал 3: shell
+pnpm --filter @rosterra/shell dev         # :3000
+```
+
+Проверки федерации: `curl http://localhost:5173/mf-manifest.json`,
+страница `http://localhost:3000/auth/login` должна показать форму (остров).
+
+Скриншотные тесты дизайн-системы:
+
+```powershell
+pnpm --filter @rosterra/ui test:storybook:visual   # сборка SB + playwright-снапшоты
+pnpm --filter @rosterra/ui test:storybook          # interaction + a11y (test-runner)
+# Требуется браузер: pnpm --filter @rosterra/ui exec playwright install chromium
+```
+
 ## Типовые проблемы (Windows)
 
 - **`go` не найден в новой консоли** — перезапустите терминал после добавления
