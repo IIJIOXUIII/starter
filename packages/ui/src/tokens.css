@@ -1,0 +1,55 @@
+/**
+ * Дизайн-токены платформы Rosterra.
+ *
+ * Семантические переменные потребляются компонентами `@rosterra/ui` (scoped-стили),
+ * а с M4 сюда добавится Tailwind-пресет (@theme), который подключат все микрофронты.
+ * Подключение в приложении: `import '@rosterra/ui/tokens.css';`
+ */
+:root {
+  /* Бренд */
+  --ui-color-primary-50: #eef2ff;
+  --ui-color-primary-100: #e0e7ff;
+  --ui-color-primary-500: #6366f1;
+  --ui-color-primary-600: #4f46e5;
+  --ui-color-primary-700: #4338ca;
+
+  /* Семантические цвета */
+  --ui-color-primary: var(--ui-color-primary-600);
+  --ui-color-primary-hover: var(--ui-color-primary-700);
+  --ui-color-primary-soft: var(--ui-color-primary-50);
+
+  --ui-color-danger: #dc2626;
+  --ui-color-danger-hover: #b91c1c;
+  --ui-color-danger-soft: #fee2e2;
+
+  --ui-color-text: #0f172a;
+  --ui-color-text-muted: #64748b;
+  --ui-color-bg: #ffffff;
+  --ui-color-bg-subtle: #f8fafc;
+  --ui-color-border: #e2e8f0;
+
+  /* Радиусы */
+  --ui-radius-sm: 6px;
+  --ui-radius-md: 8px;
+  --ui-radius-lg: 12px;
+
+  /* Типографика */
+  --ui-font-family:
+    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --ui-font-size-sm: 0.8125rem;
+  --ui-font-size-md: 0.9375rem;
+  --ui-font-size-lg: 1.0625rem;
+
+  /* Отступы и фокус */
+  --ui-space-md: 12px;
+  --ui-space-lg: 16px;
+  --ui-focus-ring: 0 0 0 3px var(--ui-color-primary-100);
+}
+
+/* Базовая типографика приложения */
+body {
+  margin: 0;
+  font-family: var(--ui-font-family);
+  color: var(--ui-color-text);
+  background-color: var(--ui-color-bg-subtle);
+}

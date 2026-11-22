@@ -1,0 +1,9 @@
+node_modules
+dist
+.output
+.nuxt
+coverage
+.turbo
+pnpm-lock.yaml
+storybook-static
+**/gen/**

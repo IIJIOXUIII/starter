@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.output/
+.nuxt/
+.turbo/
+coverage/
+*.tsbuildinfo
+
+# Go
+bin/
+*.exe
+*.test
+*.out
+vendor/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test / tooling artifacts
+playwright-report/
+test-results/
+storybook-static/
+.lostpixel/

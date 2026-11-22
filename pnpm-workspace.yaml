@@ -1,0 +1,16 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Разрешаем postinstall-скрипты только проверенным сборочным пакетам (pnpm блокирует их по умолчанию).
+allowBuilds:
+  esbuild: true
+
+onlyBuiltDependencies:
+  - esbuild
+  - '@parcel/watcher'
+  - '@tailwindcss/oxide'
+  - core-js
+  - sharp
+  - unrs-resolver
+  - workerd

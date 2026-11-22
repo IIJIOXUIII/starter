@@ -1,0 +1,27 @@
+# golangci-lint v2 — единый конфиг для всех Go-модулей монорепо.
+version: '2'
+
+linters:
+  default: standard # errcheck, govet, ineffassign, staticcheck, unused
+  enable:
+    - copyloopvar
+    - misspell
+    - revive # включает проверку godoc на экспортированных символах
+    - unconvert
+    - unparam
+  settings:
+    revive:
+      rules:
+        - name: exported
+        - name: package-comments
+        - name: indent-error-flow
+        - name: error-strings
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/rosterra

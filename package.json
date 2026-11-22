@@ -1,0 +1,41 @@
+{
+  "name": "rosterra",
+  "private": true,
+  "packageManager": "pnpm@12.21.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "prepare": "husky",
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "gen:api": "pnpm --filter @rosterra/api-client generate",
+    "compose:up": "docker compose -f deploy/compose/docker-compose.dev.yml up -d",
+    "compose:down": "docker compose -f deploy/compose/docker-compose.dev.yml down",
+    "compose:logs": "docker compose -f deploy/compose/docker-compose.dev.yml logs -f"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,vue,js,mjs,cjs}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "*.{json,md,yml,yaml,css,html}": [
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.6.0",
+    "@commitlint/config-conventional": "^19.6.0",
+    "@rosterra/eslint-config": "workspace:*",
+    "eslint": "^9.30.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.0.0",
+    "prettier": "^3.6.2",
+    "turbo": "^2.5.0"
+  }
+}

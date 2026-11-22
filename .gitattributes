@@ -1,0 +1,15 @@
+# Единые переводы строк в репозитории (рабочая копия — LF для текстовых файлов).
+* text=auto eol=lf
+
+# Исключения
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Бинарники
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary

@@ -1,0 +1,59 @@
+# Локальная дев-инфраструктура Rosterra.
+# Запуск: docker compose -f deploy/compose/docker-compose.dev.yml up -d
+# Значения по умолчанию подходят для dev; переопределяются через .env рядом с файлом.
+name: rosterra
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: rosterra-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rosterra}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rosterra}
+      POSTGRES_DB: ${POSTGRES_DB:-rosterra}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-rosterra} -d ${POSTGRES_DB:-rosterra}']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    container_name: rosterra-redis
+    command: ['redis-server', '--save', '60', '1', '--appendonly', 'no']
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  nats:
+    image: nats:2.11-alpine
+    container_name: rosterra-nats
+    command: ['-js', '-m', '8222'] # JetStream + мониторинг
+    ports:
+      - '${NATS_CLIENT_PORT:-4222}:4222'
+      - '${NATS_MONITOR_PORT:-8222}:8222'
+    volumes:
+      - natsdata:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:8222/healthz || exit 1']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+# С M2+ здесь появятся сервисы auth/users, shell и стек наблюдаемости
+# (Grafana/Prometheus/Loki/Tempo) — см. docs/ARCHITECTURE.md, §10.
+
+volumes:
+  pgdata:
+  redisdata:
+  natsdata:
