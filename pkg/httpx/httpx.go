@@ -24,14 +24,17 @@ type Server struct {
 	ready atomic.Bool
 }
 
-// New создаёт сервер на базе переданного mux: регистрирует health/readiness
-// и оборачивает mux в middleware логирования.
-func New(addr string, mux *http.ServeMux, log *slog.Logger) *Server {
+// New создаёт сервер на базе переданного handler'а (chi-роутер или http.ServeMux).
+// Для *http.ServeMux health/readiness регистрируются автоматически;
+// для остальных — используйте RegisterHealth или httpx.JSON вручную.
+func New(addr string, handler http.Handler, log *slog.Logger) *Server {
 	s := &Server{}
-	RegisterHealth(mux, s.Ready)
+	if mux, ok := handler.(*http.ServeMux); ok {
+		RegisterHealth(mux, s.Ready)
+	}
 	s.http = &http.Server{
 		Addr:              addr,
-		Handler:           LogRequests(log)(mux),
+		Handler:           LogRequests(log)(handler),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      15 * time.Second,
@@ -75,22 +78,23 @@ func RegisterHealth(mux *http.ServeMux, ready func() bool) {
 	if ready == nil {
 		ready = func() bool { return true }
 	}
-	writeJSON := func(w http.ResponseWriter, status int, body map[string]string) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-		_ = json.NewEncoder(w).Encode(body) //nolint:errcheck // клиент мог отключиться — это не ошибка сервиса
-	}
-
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+		JSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, _ *http.Request) {
 		if ready() {
-			writeJSON(w, http.StatusOK, map[string]string{"status": "ready"})
+			JSON(w, http.StatusOK, map[string]string{"status": "ready"})
 			return
 		}
-		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"status": "not_ready"})
+		JSON(w, http.StatusServiceUnavailable, map[string]string{"status": "not_ready"})
 	})
+}
+
+// JSON — единый способ ответа JSON для сервисов платформы.
+func JSON(w http.ResponseWriter, status int, body any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(body) //nolint:errcheck // клиент мог отключиться — это не ошибка сервиса
 }
 
 // LogRequests — middleware структурного логирования: метод, путь, статус, длительность.

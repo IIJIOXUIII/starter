@@ -54,5 +54,24 @@ just gen-proto  # Go gRPC-стабы (buf) — требует buf и protoc-пл
 - buf 1.75.0, protoc-gen-go, protoc-gen-go-grpc — `%USERPROFILE%\go\bin`.
 - golangci-lint — локально не ставился (проверяет CI); при желании:
   `go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest`.
-- Docker Desktop — установлен, но при первом запуске требует интерактивной
-  настройки; после неё выполните `pnpm compose:up`.
+- Docker Desktop — переустановлен, работает (compose v2).
+
+## Важно: нативный PostgreSQL на 5432
+
+На машине установлен нативный PostgreSQL 10 (служба Windows), занимающий
+порт 5432. Поэтому compose публикует контейнерный PG на **55432**
+(см. `deploy/compose/.env`). DSN для локального запуска сервисов:
+`postgres://rosterra:rosterra@localhost:55432/rosterra?sslmode=disable`.
+
+## Запуск auth-service локально (M2)
+
+```powershell
+# переменные — см. services/auth/.env.example (JWT_SEED обязателен для стабильного JWKS)
+$env:POSTGRES_DSN = 'postgres://rosterra:rosterra@localhost:55432/rosterra?sslmode=disable'
+$env:JWT_SEED = '00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff'
+go run ./services/auth/cmd/auth
+```
+
+Проверки: `GET :8081/healthz`, `GET :8081/readyz`, `POST :8081/v1/register`,
+`GET :8081/.well-known/jwks.json`. События user.created и т.п. идут в
+NATS JetStream (стрим ROSTERRA_AUTH).

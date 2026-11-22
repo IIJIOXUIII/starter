@@ -491,6 +491,15 @@ export interface operations {
                     "application/json": components["schemas"]["UserPage"];
                 };
             };
+            /** @description Не авторизован (code=unauthorized) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Недостаточно прав (code=forbidden) */
             403: {
                 headers: {
@@ -520,6 +529,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["User"];
+                };
+            };
+            /** @description Не авторизован (code=unauthorized) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Недостаточно прав (code=forbidden) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Не найден (code=not_found) */
@@ -566,6 +593,24 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            /** @description Не авторизован (code=unauthorized) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Недостаточно прав (code=forbidden) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             /** @description Не найден (code=not_found) */
             404: {
                 headers: {
@@ -603,6 +648,24 @@ export interface operations {
             };
             /** @description Некорректные роли (code=validation_failed) */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Не авторизован (code=unauthorized) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Недостаточно прав (code=forbidden) */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

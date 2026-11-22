@@ -189,6 +189,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserPage'
+        '401':
+          description: Не авторизован (code=unauthorized)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '403':
           description: Недостаточно прав (code=forbidden)
           content:
@@ -210,6 +216,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+        '401':
+          description: Не авторизован (code=unauthorized)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Недостаточно прав (code=forbidden)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '404':
           description: Не найден (code=not_found)
           content:
@@ -243,6 +261,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '401':
+          description: Не авторизован (code=unauthorized)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Недостаточно прав (code=forbidden)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '404':
           description: Не найден (code=not_found)
           content:
@@ -272,6 +302,18 @@ paths:
                 $ref: '#/components/schemas/User'
         '400':
           description: Некорректные роли (code=validation_failed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Не авторизован (code=unauthorized)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Недостаточно прав (code=forbidden)
           content:
             application/json:
               schema:

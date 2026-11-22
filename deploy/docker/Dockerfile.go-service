@@ -1,0 +1,25 @@
+# Общий Dockerfile для Go-сервисов платформы.
+# Сборка из корня монорепо: docker build -f deploy/docker/Dockerfile.go-service --build-arg SERVICE=auth .
+# syntax=docker/dockerfile:1
+
+ARG GO_VERSION=1.27
+
+FROM golang:${GO_VERSION}-alpine AS build
+ARG SERVICE
+WORKDIR /src
+
+# Кеширование модулей: go.work и модули копируются раньше исходников сервисов.
+COPY go.work* ./
+COPY pkg/ ./pkg/
+COPY services/${SERVICE}/ ./services/${SERVICE}/
+
+# Статическая сборка (pgx/argon2id/nats/goose — pure Go): distroless/static совместим.
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    cd services/${SERVICE} && \
+    CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/server ./cmd/${SERVICE}
+
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=build /out/server /server
+EXPOSE 8080
+ENTRYPOINT ["/server"]
