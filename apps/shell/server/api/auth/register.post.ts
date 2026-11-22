@@ -7,7 +7,7 @@
 import { z } from 'zod';
 
 import { authClient } from '../../utils/api';
-import { isSameOrigin, setSession } from '../../utils/session';
+import { isSameOrigin, setAuthCookies } from '../../utils/session';
 import { checkRate, clientIp } from '../../utils/ratelimit';
 import { respondError, type ErrorEnvelope } from '../../utils/proxy';
 
@@ -54,7 +54,7 @@ export default defineEventHandler(async (event) => {
     );
   }
 
-  setSession(event, data);
+  setAuthCookies(event, data);
   setResponseStatus(event, 201);
   return { user: data.user };
 });

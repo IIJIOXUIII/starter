@@ -5,7 +5,7 @@ import type { H3Event } from 'h3';
 import type { AuthApi } from '@rosterra/api-client';
 
 import { authClient } from './api';
-import { clearSession, readAccess, readRefresh, setSession } from './session';
+import { clearAuthCookies, readAccess, readRefresh, setAuthCookies } from './session';
 
 /** Формат error-envelope всех сервисов платформы. */
 export interface ErrorEnvelope {
@@ -63,10 +63,10 @@ export async function refreshSession(event: H3Event): Promise<RefreshResult> {
     body: { refresh_token: refreshToken },
   });
   if (error || !data || response.status !== 200) {
-    clearSession(event);
+    clearAuthCookies(event);
     return { ok: false };
   }
-  setSession(event, data);
+  setAuthCookies(event, data);
   return { ok: true, tokens: data };
 }
 

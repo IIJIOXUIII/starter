@@ -6,7 +6,7 @@
  */
 import { authClient } from '../../utils/api';
 import { bearerFromCookie, respondError } from '../../utils/proxy';
-import { clearSession, isSameOrigin, readRefresh } from '../../utils/session';
+import { clearAuthCookies, isSameOrigin, readRefresh } from '../../utils/session';
 
 export default defineEventHandler(async (event) => {
   if (!isSameOrigin(event)) {
@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  clearSession(event);
+  clearAuthCookies(event);
   setResponseStatus(event, 204);
   return null;
 });

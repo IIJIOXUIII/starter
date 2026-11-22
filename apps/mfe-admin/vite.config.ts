@@ -1,8 +1,26 @@
 import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite';
+import { federation } from '@module-federation/vite';
 
-// С M4 сюда добавляется Module Federation 2.0 (@module-federation/vite):
-// exposes: UsersListPage, UserEditPage; shared: vue, pinia (singletons).
+// Module Federation 2.0: remote админки (остров с self-contained Vue).
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    federation({
+      name: 'mfe_admin',
+      filename: 'remoteEntry.js',
+      exposes: {
+        './UsersPage': './src/app/users-page.ts',
+      },
+      manifest: true,
+      remotes: {},
+      shared: {},
+    }),
+  ],
+  server: {
+    cors: true,
+  },
+  build: {
+    target: 'esnext',
+  },
 });

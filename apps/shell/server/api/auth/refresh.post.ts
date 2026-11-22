@@ -5,13 +5,13 @@
  * обновляет cookies. UI обычно не вызывает сам: access обновляется прозрачно.
  */
 import { authClient } from '../../utils/api';
-import { clearSession, readRefresh, setSession } from '../../utils/session';
+import { clearAuthCookies, readRefresh, setAuthCookies } from '../../utils/session';
 import { respondError } from '../../utils/proxy';
 
 export default defineEventHandler(async (event) => {
   const refreshToken = readRefresh(event);
   if (!refreshToken) {
-    clearSession(event);
+    clearAuthCookies(event);
     return respondError(event, 401, {
       code: 'unauthorized',
       message: 'authentication required',
@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
   });
   if (error || !data || response.status !== 200) {
     // Истёк/отозван/reuse — cookies бессмысленны, чистим.
-    clearSession(event);
+    clearAuthCookies(event);
     return respondError(
       event,
       response.status,
@@ -31,6 +31,6 @@ export default defineEventHandler(async (event) => {
     );
   }
 
-  setSession(event, data);
+  setAuthCookies(event, data);
   return { user: data.user };
 });

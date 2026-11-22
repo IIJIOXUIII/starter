@@ -4,10 +4,12 @@ packages:
 
 # Разрешаем postinstall-скрипты только проверенным сборочным пакетам (pnpm блокирует их по умолчанию).
 allowBuilds:
+  '@swc/core': true
   esbuild: true
 
 onlyBuiltDependencies:
   - esbuild
+  - '@swc/core'
   - '@parcel/watcher'
   - '@tailwindcss/oxide'
   - core-js

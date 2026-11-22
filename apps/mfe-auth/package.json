@@ -6,15 +6,20 @@
   "scripts": {
     "dev": "vite --port 5173",
     "build": "vite build",
-    "preview": "vite preview",
+    "preview": "vite preview --port 5173",
     "lint": "eslint .",
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@vee-validate/zod": "^4.15.0",
     "@rosterra/ui": "workspace:*",
-    "vue": "^3.5.0"
+    "@rosterra/utils": "workspace:*",
+    "vee-validate": "^4.15.0",
+    "vue": "^3.5.0",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
+    "@module-federation/vite": "^1.24.0",
     "@rosterra/eslint-config": "workspace:*",
     "@rosterra/tsconfig": "workspace:*",
     "@vitejs/plugin-vue": "^6.0.0",

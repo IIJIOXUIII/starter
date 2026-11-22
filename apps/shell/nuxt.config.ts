@@ -15,6 +15,11 @@ export default defineNuxtConfig({
   runtimeConfig: {
     authBase: 'http://localhost:8081',
     usersBase: 'http://localhost:8082',
+    public: {
+      // MF-манифесты микрофронтов (remote entries).
+      mfeAuthUrl: 'http://localhost:5173/mf-manifest.json',
+      mfeAdminUrl: 'http://localhost:5174/mf-manifest.json',
+    },
   },
 
   // TS-исходники workspace-пакетов должны транспилироваться и в SSR, и в клиент.

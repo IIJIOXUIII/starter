@@ -15,6 +15,7 @@
     "vue": "^3.5.0"
   },
   "devDependencies": {
+    "@module-federation/vite": "^1.24.0",
     "@rosterra/eslint-config": "workspace:*",
     "@rosterra/tsconfig": "workspace:*",
     "@vitejs/plugin-vue": "^6.0.0",

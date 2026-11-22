@@ -31,7 +31,7 @@ const baseCookieOpts = {
  * @param event - событие h3.
  * @param tokens - токены из ответа auth-service.
  */
-export function setSession(event: H3Event, tokens: SessionTokens): void {
+export function setAuthCookies(event: H3Event, tokens: SessionTokens): void {
   setCookie(event, ACCESS_COOKIE, tokens.access_token, {
     ...baseCookieOpts,
     path: '/',
@@ -49,7 +49,7 @@ export function setSession(event: H3Event, tokens: SessionTokens): void {
  *
  * @param event - событие h3.
  */
-export function clearSession(event: H3Event): void {
+export function clearAuthCookies(event: H3Event): void {
   deleteCookie(event, ACCESS_COOKIE, { path: '/' });
   deleteCookie(event, REFRESH_COOKIE, { path: '/api/auth' });
 }
