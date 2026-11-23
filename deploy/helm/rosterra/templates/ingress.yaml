@@ -1,0 +1,40 @@
+{{- if .Values.ingress.enabled -}}
+{{- $fullName := include "rosterra.fullname" . -}}
+{{- $shell := include "rosterra.component" (dict "ctx" . "component" "shell") -}}
+{{- $authRemote := include "rosterra.component" (dict "ctx" . "component" "remotes-auth") -}}
+{{- $adminRemote := include "rosterra.component" (dict "ctx" . "component" "remotes-admin") -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "rosterra.labels" . | nindent 4 }}
+  annotations:
+    # remoteEntry/mf-manifest раздаются nginx'ом remotes по same-origin путям.
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    - host: {{ .Values.global.domain | quote }}
+      http:
+        paths:
+          - path: /mfe/auth(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ $authRemote }}
+                port: { number: 80 }
+          - path: /mfe/admin(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ $adminRemote }}
+                port: { number: 80 }
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $shell }}
+                port: { number: 80 }
+{{- end }}

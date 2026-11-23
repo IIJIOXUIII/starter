@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "rosterra.component" (dict "ctx" . "component" "users") }}
+  labels:
+    {{- include "rosterra.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: users
+spec:
+  selector:
+    {{- include "rosterra.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: users
+  ports:
+    - name: http
+      port: {{ .Values.users.httpPort }}
+      targetPort: http
+    - name: grpc
+      port: {{ .Values.users.grpcPort }}
+      targetPort: grpc

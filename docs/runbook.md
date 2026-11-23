@@ -66,6 +66,36 @@ cd apps/shell && pnpm exec playwright test -c playwright.m4.config.ts   # M4: о
 cd apps/shell && pnpm exec playwright test -c playwright.m5.config.ts   # M5: живая админка
 ```
 
+## Kubernetes / Helm (M7)
+
+Чарт: `deploy/helm/rosterra` (auth, users, shell, remotes-статика, Ingress, Secret,
+опциональный ServiceMonitor). Инфраструктура (PG/Redis/NATS/Jaeger/Prometheus)
+подключается внешне — через `values.yaml` (endpoint'ы) или существующие чарты.
+
+```powershell
+# Валидация без кластера
+helm lint deploy/helm/rosterra
+helm template rosterra deploy/helm/rosterra          # рендер всех манифестов
+
+# Сборка образов (контекст — корень монорепо)
+docker build -f services/auth/Dockerfile -t rosterra/auth:m7 .
+docker build -f services/users/Dockerfile -t rosterra/users:m7 .
+docker build -f apps/shell/Dockerfile -t rosterra/shell:m7 .
+docker build -f apps/mfe-auth/Dockerfile -t rosterra/mfe-auth:m7 .
+docker build -f apps/mfe-admin/Dockerfile -t rosterra/mfe-admin:m7 .
+
+# Установка (когда кластер доступен: Docker Desktop K8s / kind / кластер)
+helm install rosterra deploy/helm/rosterra -f deploy/helm/rosterra/values-dev.yaml
+```
+
+Ключевые маршруты ingress: `/` → shell, `/mfe/auth/*` → remotes-auth, `/mfe/admin/*`
+→ remotes-admin (same-origin MF: куки и манифесты без CORS). Секреты (JWT_SEED,
+DSN) — Secret из values; в prod переопределять `--set secrets.*` или своим Secret.
+
+Нюанс сборки Go: go.work перечисляет оба сервиса — в Dockerfile копируется
+go.mod «чужого» сервиса (без исходников). pnpm-сборки требуют `onlyBuiltDependencies`
+из pnpm-workspace.yaml (esbuild/@swc/core) — в контейнере отрабатывают автоматически.
+
 ## Наблюдаемость (M6)
 
 ```powershell

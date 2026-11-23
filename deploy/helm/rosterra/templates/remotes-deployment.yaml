@@ -1,0 +1,44 @@
+{{- range $remote := list "remotesAuth" "remotesAdmin" }}
+{{- $c := index $.Values $remote }}
+{{- $component := replace "remotes" "remotes-" $remote | lower }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rosterra.component" (dict "ctx" $ "component" $component) }}
+  labels:
+    {{- include "rosterra.selectorLabels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component }}
+spec:
+  replicas: {{ $c.replicas }}
+  selector:
+    matchLabels:
+      {{- include "rosterra.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: {{ $component }}
+  template:
+    metadata:
+      labels:
+        {{- include "rosterra.selectorLabels" $ | nindent 8 }}
+        app.kubernetes.io/component: {{ $component }}
+    spec:
+      containers:
+        - name: nginx
+          image: {{ include "rosterra.image" (dict "ctx" $ "image" $c.image) }}
+          imagePullPolicy: {{ $.Values.global.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ $c.port }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 20m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+{{- end }}

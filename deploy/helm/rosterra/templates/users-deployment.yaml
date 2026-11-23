@@ -1,0 +1,67 @@
+{{- $c := .Values.users -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rosterra.component" (dict "ctx" . "component" "users") }}
+  labels:
+    {{- include "rosterra.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: users
+spec:
+  replicas: {{ $c.replicas }}
+  selector:
+    matchLabels:
+      {{- include "rosterra.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: users
+  template:
+    metadata:
+      labels:
+        {{- include "rosterra.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: users
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ $c.httpPort | quote }}
+        prometheus.io/path: /metrics
+    spec:
+      containers:
+        - name: users
+          image: {{ include "rosterra.image" (dict "ctx" . "image" $c.image) }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ $c.httpPort }}
+            - name: grpc
+              containerPort: {{ $c.grpcPort }}
+          env:
+            - name: HTTP_PORT
+              value: {{ $c.httpPort | quote }}
+            - name: GRPC_PORT
+              value: {{ $c.grpcPort | quote }}
+            - name: POSTGRES_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "rosterra.fullname" . }}-secrets
+                  key: postgres-dsn
+            - name: JWT_SEED
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "rosterra.fullname" . }}-secrets
+                  key: jwt-seed
+            - name: NATS_URL
+              value: {{ .Values.infra.natsUrl | quote }}
+            {{- if .Values.infra.otelEndpoint }}
+            - name: OTEL_ENDPOINT
+              value: {{ .Values.infra.otelEndpoint | quote }}
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources: {{- toYaml $c.resources | nindent 12 }}

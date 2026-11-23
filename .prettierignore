@@ -1,9 +1,3 @@
-node_modules
-dist
-.output
-.nuxt
-coverage
-.turbo
-pnpm-lock.yaml
-storybook-static
-**/gen/**
+# Helm-шаблоны — не валидный YAML до рендера: исключаем из prettier.
+deploy/helm/**/templates/**
+deploy/helm/**/*.tpl

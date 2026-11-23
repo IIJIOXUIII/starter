@@ -1,0 +1,49 @@
+{{- $c := .Values.shell -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rosterra.component" (dict "ctx" . "component" "shell") }}
+  labels:
+    {{- include "rosterra.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: shell
+spec:
+  replicas: {{ $c.replicas }}
+  selector:
+    matchLabels:
+      {{- include "rosterra.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: shell
+  template:
+    metadata:
+      labels:
+        {{- include "rosterra.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: shell
+    spec:
+      containers:
+        - name: shell
+          image: {{ include "rosterra.image" (dict "ctx" . "image" $c.image) }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ $c.port }}
+          env:
+            - name: NUXT_AUTH_BASE
+              value: http://{{ include "rosterra.component" (dict "ctx" . "component" "auth") }}:{{ .Values.auth.httpPort }}
+            - name: NUXT_USERS_BASE
+              value: http://{{ include "rosterra.component" (dict "ctx" . "component" "users") }}:{{ .Values.users.httpPort }}
+            - name: NUXT_PUBLIC_MFE_AUTH_URL
+              value: {{ $c.mfeAuthUrl | quote }}
+            - name: NUXT_PUBLIC_MFE_ADMIN_URL
+              value: {{ $c.mfeAdminUrl | quote }}
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources: {{- toYaml $c.resources | nindent 12 }}

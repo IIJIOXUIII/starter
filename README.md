@@ -15,7 +15,8 @@
 | M4 микрофронты (MF 2.0 islands), Storybook (interaction/a11y/visual), формы входа/регистрации | ✅     |
 | M5 users-service (профили, NATS-consumer, gRPC) + живая админка (таблица, карточка, RBAC)     | ✅     |
 | M6 наблюдаемость: OTel-трейсы (Jaeger), метрики (Prometheus), Grafana                         | ✅     |
-| M7 Helm/K8s · M8 e2e-полировка                                                                | ⏳     |
+| M7 Docker-образы (5 сервисов) + Helm-чарт (Deployment/Service/Ingress/Secret)                 | ✅     |
+| M8 e2e-полировка (полный критический путь, CI-гейты браузерных тестов)                        | ⏳     |
 
 Что уже работает end-to-end: регистрация → вход → cookie-сессия → прозрачный refresh →
 выход; JWKS; события user.\*/role_changed в NATS; **профили создаются consumer'ом

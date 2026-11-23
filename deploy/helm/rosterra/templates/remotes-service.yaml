@@ -1,0 +1,20 @@
+{{- range $remote := list "remotesAuth" "remotesAdmin" }}
+{{- $c := index $.Values $remote }}
+{{- $component := replace "remotes" "remotes-" $remote | lower }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "rosterra.component" (dict "ctx" $ "component" $component) }}
+  labels:
+    {{- include "rosterra.selectorLabels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component }}
+spec:
+  selector:
+    {{- include "rosterra.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: {{ $component }}
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+{{- end }}

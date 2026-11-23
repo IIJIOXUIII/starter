@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "rosterra.component" (dict "ctx" . "component" "shell") }}
+  labels:
+    {{- include "rosterra.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: shell
+spec:
+  selector:
+    {{- include "rosterra.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: shell
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

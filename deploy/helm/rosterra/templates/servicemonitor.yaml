@@ -1,0 +1,21 @@
+{{- if .Values.serviceMonitor.enabled }}
+{{- range $svc := list (dict "component" "auth" "port" .Values.auth.httpPort) (dict "component" "users" "port" .Values.users.httpPort) }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "rosterra.component" (dict "ctx" $ "component" $svc.component) }}
+  labels:
+    {{- include "rosterra.selectorLabels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $svc.component }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "rosterra.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: {{ $svc.component }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ $.Values.serviceMonitor.interval }}
+---
+{{- end }}
+{{- end }}

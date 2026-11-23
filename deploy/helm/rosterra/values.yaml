@@ -1,0 +1,76 @@
+# Значения по умолчанию для чарта rosterra.
+# Локальный dev-кластер: infra.endpoint'ы указывают на docker compose (host.docker.internal)
+# — см. values-dev.yaml.
+
+global:
+  imageRegistry: '' # например, ghcr.io/iiijoxuiii; пусто — только имя образа
+  imagePullPolicy: IfNotPresent
+  imageTag: '' # пусто → Chart.AppVersion
+  domain: rosterra.local # host ingress'а
+  # Движок трассировки/базы конфигурируются ниже по сервисам.
+
+# Внешняя инфраструктура (compose dev / managed prod).
+infra:
+  postgresHost: host.docker.internal
+  postgresPort: 55432
+  postgresUser: rosterra
+  postgresPassword: rosterra
+  postgresDb: rosterra
+  redisAddr: host.docker.internal:6379
+  natsUrl: nats://host.docker.internal:4222
+  otelEndpoint: http://host.docker.internal:4318 # пусто → трассировка off
+
+# Dev-секреты (в prod — переопределяйте через --set / существующий Secret).
+secrets:
+  jwtSeed: '00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff'
+
+auth:
+  replicas: 1
+  image: rosterra/auth
+  httpPort: 8081
+  grpcPort: 9082
+  accessTTL: 15m
+  refreshTTL: 12h
+  refreshTTLLong: 720h
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { cpu: 500m, memory: 256Mi }
+
+users:
+  replicas: 1
+  image: rosterra/users
+  httpPort: 8082
+  grpcPort: 9082
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { cpu: 500m, memory: 256Mi }
+
+shell:
+  replicas: 1
+  image: rosterra/shell
+  port: 3000
+  # MF-манифесты: same-origin пути за ingress'ом (без CORS).
+  mfeAuthUrl: /mfe/auth/mf-manifest.json
+  mfeAdminUrl: /mfe/admin/mf-manifest.json
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { cpu: '1', memory: 512Mi }
+
+remotesAuth:
+  replicas: 1
+  image: rosterra/mfe-auth
+  port: 80
+
+remotesAdmin:
+  replicas: 1
+  image: rosterra/mfe-admin
+  port: 80
+
+ingress:
+  enabled: true
+  className: nginx
+  # TLS — M7+/M8 (cert-manager).
+
+serviceMonitor:
+  enabled: false # true при наличии prometheus-operator (kube-prometheus-stack)
+  interval: 15s

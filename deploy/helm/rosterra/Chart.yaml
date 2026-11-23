@@ -1,0 +1,14 @@
+apiVersion: v2
+name: rosterra
+description: |
+  Rosterra — стартовый проект микросервисной платформы:
+  auth-service, users-service, shell/BFF (Nuxt) и MF-remotes (статика).
+
+  Инфраструктура (PostgreSQL, Redis, NATS, Jaeger, Prometheus, Grafana)
+  подключается внешне через values (см. README чарта / docs/runbook.md).
+type: application
+version: 0.1.0
+appVersion: 'm7'
+keywords: [microservices, nuxt, module-federation, oauth, starter]
+maintainers:
+  - name: IIJIOXUIII
