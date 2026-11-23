@@ -96,6 +96,19 @@ DSN) — Secret из values; в prod переопределять `--set secrets
 go.mod «чужого» сервиса (без исходников). pnpm-сборки требуют `onlyBuiltDependencies`
 из pnpm-workspace.yaml (esbuild/@swc/core) — в контейнере отрабатывают автоматически.
 
+## CI (M8)
+
+Workflow `.github/workflows/ci.yml` — четыре job'а:
+
+1. **ts** — lint / unit / build всего монорепо (turbo)
+2. **go** — build / vet / test по модулям + golangci-lint (testcontainers работают на GH-раннерах)
+3. **helm** — lint + template чарта (helm v3.16.4)
+4. **e2e** — полная эмуляция dev-стека: postgres/redis/nats как service-контейнеры,
+   сборка Go + фронта, запуск auth/users/remotes/shell, Playwright-прогон M4+M5+M8
+   (Chromium), артефакты при падении.
+
+Локально все наборы — см. разделы выше; e2e идентичны CI-шагам.
+
 ## Наблюдаемость (M6)
 
 ```powershell

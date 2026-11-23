@@ -60,3 +60,118 @@ jobs:
         uses: golangci/golangci-lint-action@v8
         with:
           version: latest
+
+  helm:
+    name: Helm — lint / template
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.4
+
+      - name: Helm lint
+        run: helm lint deploy/helm/rosterra --strict
+
+      - name: Helm template
+        run: helm template rosterra deploy/helm/rosterra > /dev/null
+
+  e2e:
+    name: E2E — критический путь (браузер)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: rosterra
+          POSTGRES_PASSWORD: rosterra
+          POSTGRES_DB: rosterra
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U rosterra"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+      nats:
+        image: nats:2.11-alpine
+        command: ['-js']
+        ports:
+          - 4222:4222
+    env:
+      JWT_SEED: '00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff'
+      POSTGRES_DSN: 'postgres://rosterra:rosterra@localhost:55432/rosterra?sslmode=disable'
+      REDIS_ADDR: localhost:6379
+      NATS_URL: nats://localhost:4222
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27'
+          cache: true
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Go services
+        run: |
+          set -e
+          go build -o /tmp/auth ./services/auth/cmd/auth
+          go build -o /tmp/users ./services/users/cmd/users
+
+      - name: Build frontend
+        run: pnpm exec turbo run build --filter=@rosterra/shell --filter=@rosterra/mfe-auth --filter=@rosterra/mfe-admin
+
+      - name: Start services (auth + users)
+        run: |
+          /tmp/auth & 
+          /tmp/users &
+          # Ждём готовности обоих (goose-миграции синхронны при старте).
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8081/readyz > /dev/null && \
+            curl -sf http://localhost:8082/readyz > /dev/null && break
+            sleep 1
+          done
+          curl -sf http://localhost:8081/readyz
+          curl -sf http://localhost:8082/readyz
+
+      - name: Start remotes + shell
+        run: |
+          pnpm --filter @rosterra/mfe-auth exec vite preview --port 5173 --strictPort &
+          pnpm --filter @rosterra/mfe-admin exec vite preview --port 5174 --strictPort &
+          NUXT_AUTH_BASE=http://localhost:8081 NUXT_USERS_BASE=http://localhost:8082 \
+            node apps/shell/.output/server/index.mjs &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:3000/api/health > /dev/null && break
+            sleep 1
+          done
+          curl -sf http://localhost:3000/api/health
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install chromium --with-deps
+
+      - name: Run browser e2e (M4 federation / M5 admin / M8 journey)
+        working-directory: apps/shell
+        run: |
+          pnpm exec playwright test -c playwright.m4.config.ts
+          pnpm exec playwright test -c playwright.m5.config.ts
+          pnpm exec playwright test -c playwright.m8.config.ts
+
+      - name: Upload Playwright artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: apps/shell/test-results/
+          retention-days: 7
