@@ -5,7 +5,7 @@
  */
 import { z } from 'zod';
 
-import { authClient } from '../../utils/api';
+import { authClient, traceHeaders } from '../../utils/api';
 import { isSameOrigin, setAuthCookies } from '../../utils/session';
 import { checkRate, clientIp } from '../../utils/ratelimit';
 import { respondError, type ErrorEnvelope } from '../../utils/proxy';
@@ -45,6 +45,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const { data, error, response } = await authClient.POST('/v1/login', {
+    headers: traceHeaders(event),
     body: {
       email: parsed.data.email,
       password: parsed.data.password,

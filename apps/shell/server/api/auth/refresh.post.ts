@@ -4,7 +4,7 @@
  * Берёт refresh-cookie, вызывает auth-service (ротация + reuse detection),
  * обновляет cookies. UI обычно не вызывает сам: access обновляется прозрачно.
  */
-import { authClient } from '../../utils/api';
+import { authClient, traceHeaders } from '../../utils/api';
 import { clearAuthCookies, readRefresh, setAuthCookies } from '../../utils/session';
 import { respondError } from '../../utils/proxy';
 
@@ -19,6 +19,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const { data, error, response } = await authClient.POST('/v1/refresh', {
+    headers: traceHeaders(event),
     body: { refresh_token: refreshToken },
   });
   if (error || !data || response.status !== 200) {

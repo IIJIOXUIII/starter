@@ -52,10 +52,49 @@ services:
       timeout: 3s
       retries: 10
 
-# С M2+ здесь появятся сервисы auth/users, shell и стек наблюдаемости
-# (Grafana/Prometheus/Loki/Tempo) — см. docs/ARCHITECTURE.md, §10.
+  # С M2+ здесь появятся сервисы auth/users, shell и стек наблюдаемости
+  # (Grafana/Prometheus/Loki/Tempo) — см. docs/ARCHITECTURE.md, §10.
+
+  # С M6 добавлена наблюдаемость: Jaeger (OTLP-трейсы), Prometheus (метрики
+  # сервисов на хосте), Grafana (дашборды). См. docs/runbook.md, раздел «Наблюдаемость».
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.62.0
+    container_name: rosterra-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: 'true' # приём OTLP (http :4318 / grpc :4317)
+    ports:
+      - '${JAEGER_UI_PORT:-16686}:16686' # UI: http://localhost:16686
+      - '${OTLP_HTTP_PORT:-4318}:4318' # OTLP HTTP (OTEL_ENDPOINT сервисов)
+      - '${OTLP_GRPC_PORT:-4317}:4317'
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: rosterra-prometheus
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - '${PROMETHEUS_PORT:-9090}:9090'
+    extra_hosts:
+      # Linux-совместимость: сервисы слушают на хосте (Docker Desktop имеет alias по умолчанию)
+      - 'host.docker.internal:host-gateway'
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: rosterra-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-grafana}
+      GF_AUTH_ANONYMOUS_ENABLED: 'true'
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafanadata:/var/lib/grafana
+    ports:
+      - '${GRAFANA_PORT:-3001}:3000' # UI: http://localhost:3001 (3000 занят shell)
 
 volumes:
   pgdata:
   redisdata:
   natsdata:
+  grafanadata:

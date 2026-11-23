@@ -55,7 +55,7 @@ func TestApplyEventCreatesProfileIdempotent(t *testing.T) {
 	outbox := &fakeOutboxRepo{}
 	processed := newFakeProcessedRepo()
 	svc := service.New(profiles, outbox, processed, log)
-	c := NewConsumer(svc, nil, log)
+	c := NewConsumer(svc, nil, log, nil)
 
 	eventID, userID := uuid.New(), uuid.New()
 	name := "FromEvent"

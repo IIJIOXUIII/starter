@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   const access = readAccess(event);
 
   if (access) {
-    const { data, response } = await authorizedAuthClient(access).GET('/v1/me');
+    const { data, response } = await authorizedAuthClient(access, event).GET('/v1/me');
     if (!response || response.status !== 401) {
       if (data) {
         return { user: data };
@@ -31,9 +31,10 @@ export default defineEventHandler(async (event) => {
     return respondError(event, 401, { code: 'unauthorized', message: 'authentication required' });
   }
 
-  const { data, error, response } = await authorizedAuthClient(refreshed.tokens.access_token).GET(
-    '/v1/me',
-  );
+  const { data, error, response } = await authorizedAuthClient(
+    refreshed.tokens.access_token,
+    event,
+  ).GET('/v1/me');
   if (error || !data) {
     return respondError(
       event,

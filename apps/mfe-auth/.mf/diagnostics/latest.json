@@ -1,10 +1,10 @@
 {
   "latestErrorEvent": {
     "code": "TYPE-001",
-    "message": "Failed to generate type declaration. Execute the below cmd to reproduce and fix the error. #TYPE-001\nargs: {\"cmd\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\nodejs\\\\\\\\node.exe\\\" E:\\\\newProject\\\\node_modules\\\\.pnpm\\\\typescript@5.9.3\\\\node_modules\\\\typescript\\\\bin\\\\tsc --project E:\\\\newProject\\\\apps\\\\mfe-auth\\\\node_modules\\\\.federation\\\\tsconfig.e5bbbbf871f9542ed6df0b94fa9dde9a.json\"}\nView the docs to see how to solve: https://module-federation.io/guide/troubleshooting/type#type-001",
+    "message": "Failed to generate type declaration. Execute the below cmd to reproduce and fix the error. #TYPE-001\nargs: {\"cmd\":\"\\\"C:\\\\\\\\Program Files\\\\\\\\nodejs\\\\\\\\node.exe\\\" E:\\\\newProject\\\\node_modules\\\\.pnpm\\\\typescript@5.9.3\\\\node_modules\\\\typescript\\\\bin\\\\tsc --project E:\\\\newProject\\\\apps\\\\mfe-auth\\\\node_modules\\\\.federation\\\\tsconfig.36ca3e4671b148a4c3aae8530b49d50f.json\"}\nView the docs to see how to solve: https://module-federation.io/guide/troubleshooting/type#type-001",
     "args": {
-      "cmd": "\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" E:\\newProject\\node_modules\\.pnpm\\typescript@5.9.3\\node_modules\\typescript\\bin\\tsc --project E:\\newProject\\apps\\mfe-auth\\node_modules\\.federation\\tsconfig.e5bbbbf871f9542ed6df0b94fa9dde9a.json"
+      "cmd": "\"C:\\\\Program Files\\\\nodejs\\\\node.exe\" E:\\newProject\\node_modules\\.pnpm\\typescript@5.9.3\\node_modules\\typescript\\bin\\tsc --project E:\\newProject\\apps\\mfe-auth\\node_modules\\.federation\\tsconfig.36ca3e4671b148a4c3aae8530b49d50f.json"
     },
-    "timestamp": 1795379255599
+    "timestamp": 1795418832293
   }
 }

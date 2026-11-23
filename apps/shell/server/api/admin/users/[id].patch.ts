@@ -73,7 +73,7 @@ export default defineEventHandler(async (event) => {
   // 3) Профиль (users-service). '' в avatar_url/notes = очистить поле.
   let profile = null;
   if (body.profile !== undefined) {
-    const { data, error, response } = await authorizedUsersClient(guard.token).PATCH(
+    const { data, error, response } = await authorizedUsersClient(guard.token, event).PATCH(
       '/v1/profiles/{user_id}',
       {
         params: { path: { user_id: id } },

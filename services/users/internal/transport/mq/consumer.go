@@ -10,7 +10,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 
+	"github.com/rosterra/platform/pkg/otelx"
 	"github.com/rosterra/services/users/internal/service"
 )
 
@@ -32,6 +37,8 @@ type cloudEvent struct {
 	Source      string          `json:"source"`
 	Time        time.Time       `json:"time"`
 	Data        json.RawMessage `json:"data"`
+	// Traceparent — CE-extension: трейс публикации (auth) продолжается здесь.
+	Traceparent string `json:"traceparent,omitempty"`
 }
 
 // userCreatedData — data события user.created (publicUser из auth-service).
@@ -46,16 +53,18 @@ const maxDeliverAttempts = 5
 
 // Consumer — фоновый потребитель user.created: создаёт профили новым пользователям.
 type Consumer struct {
-	svc  *service.Service
-	js   nats.JetStreamContext
-	log  *slog.Logger
-	stop chan struct{}
-	done chan struct{}
+	svc    *service.Service
+	js     nats.JetStreamContext
+	log    *slog.Logger
+	tracer trace.Tracer
+	stop   chan struct{}
+	done   chan struct{}
 }
 
 // NewConsumer собирает consumer.
-func NewConsumer(svc *service.Service, js nats.JetStreamContext, log *slog.Logger) *Consumer {
-	return &Consumer{svc: svc, js: js, log: log, stop: make(chan struct{}), done: make(chan struct{})}
+// otel — фиксация порядка инициализации (см. http.NewServer).
+func NewConsumer(svc *service.Service, js nats.JetStreamContext, log *slog.Logger, _ *otelx.OTel) *Consumer {
+	return &Consumer{svc: svc, js: js, log: log, tracer: otel.Tracer("rosterra/users/consumer"), stop: make(chan struct{}), done: make(chan struct{})}
 }
 
 // Run подписывается (durable pull-consumer) и обрабатывает события до остановки.
@@ -151,20 +160,35 @@ func (c *Consumer) handleMsg(ctx context.Context, msg *nats.Msg) {
 }
 
 // applyEvent парсит data и применяет создание профиля.
+// Трейс: если в конверте есть traceparent — consumer продолжает трейс auth.
 func (c *Consumer) applyEvent(ctx context.Context, evt cloudEvent) error {
+	ctx = otelx.ContextFromCloudEvent(ctx, evt.Traceparent)
+	ctx, span := c.tracer.Start(ctx, fmt.Sprintf("users.event.consume %s", evt.Type),
+		trace.WithSpanKind(trace.SpanKindConsumer),
+		trace.WithAttributes(
+			attribute.String("messaging.system", "nats"),
+			attribute.String("messaging.destination.name", AuthUserCreatedSubject),
+			attribute.String("messaging.message.id", evt.ID),
+		),
+	)
+	defer span.End()
+
 	if evt.Type != "user.created" {
 		c.log.Warn("unexpected event type, skipping", "type", evt.Type)
 		return nil
 	}
 	eventID, err := uuid.Parse(evt.ID)
 	if err != nil {
+		span.SetStatus(codes.Error, "parse event id")
 		return fmt.Errorf("parse event id: %w", err)
 	}
 	var data userCreatedData
 	if err := json.Unmarshal(evt.Data, &data); err != nil {
+		span.SetStatus(codes.Error, "unmarshal data")
 		return fmt.Errorf("unmarshal user.created data: %w", err)
 	}
 	if err := c.svc.HandleUserCreated(ctx, eventID, data.ID, data.Name); err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return fmt.Errorf("handle user.created: %w", err)
 	}
 	return nil

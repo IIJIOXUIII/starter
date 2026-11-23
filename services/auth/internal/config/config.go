@@ -36,6 +36,9 @@ type Config struct {
 	RefreshTTLLong time.Duration
 	// RelayInterval — интервал опроса outbox-релея.
 	RelayInterval time.Duration
+	// OTELEndpoint — базовый URL OTLP HTTP-коллектора (Jaeger).
+	// Пусто → трассировка выключена (noop).
+	OTELEndpoint string
 }
 
 // Load читает конфигурацию из окружения, подставляя безопасные значения по умолчанию.
@@ -56,5 +59,6 @@ func Load() *Config {
 		RefreshTTL:     configx.Duration("REFRESH_TTL", 12*time.Hour),
 		RefreshTTLLong: configx.Duration("REFRESH_TTL_LONG", 30*24*time.Hour),
 		RelayInterval:  configx.Duration("RELAY_INTERVAL", 1*time.Second),
+		OTELEndpoint:   configx.String("OTEL_ENDPOINT", ""),
 	}
 }

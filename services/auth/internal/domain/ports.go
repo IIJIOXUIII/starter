@@ -76,6 +76,9 @@ type CE struct {
 	Source      string          `json:"source"`
 	Time        time.Time       `json:"time"`
 	Data        json.RawMessage `json:"data"`
+	// Traceparent — W3C-контекст (CE-extension): связывает трейс публикации
+	// с трейсом потребителя события (users-service продолжает трейс).
+	Traceparent string `json:"traceparent,omitempty"`
 }
 
 // OutboxEvent — событие, публикуемое через transactional outbox.

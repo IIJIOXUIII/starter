@@ -12,17 +12,23 @@ export default defineEventHandler(async (event) => {
     return respondError(event, guard.status, guard.body);
   }
 
-  const query = getQuery(event);
+  const rawQuery = getQuery(event);
   const listQuery = {
-    query: typeof query.query === 'string' && query.query !== '' ? query.query : undefined,
-    status: query.status === 'active' || query.status === 'blocked' ? query.status : undefined,
-    role: query.role === 'user' || query.role === 'admin' ? query.role : undefined,
-    page: positiveInt(query.page, 1),
-    per_page: positiveInt(query.per_page, 20),
+    query: typeof rawQuery.query === 'string' && rawQuery.query !== '' ? rawQuery.query : undefined,
+    status:
+      rawQuery.status === 'active' || rawQuery.status === 'blocked'
+        ? (rawQuery.status as 'active' | 'blocked')
+        : undefined,
+    role:
+      rawQuery.role === 'user' || rawQuery.role === 'admin'
+        ? (rawQuery.role as 'user' | 'admin')
+        : undefined,
+    page: positiveInt(rawQuery.page, 1),
+    per_page: positiveInt(rawQuery.per_page, 20),
   };
 
   const page = await callAuth(event, (client) =>
-    client.GET('/v1/admin/users', { query: listQuery }),
+    client.GET('/v1/admin/users', { params: { query: listQuery } }),
   );
   if (!page.ok) {
     return respondError(event, page.status, page.body);
@@ -32,9 +38,12 @@ export default defineEventHandler(async (event) => {
   const ids = users.map((u) => u.id).join(',');
   let profiles = null;
   if (ids !== '') {
-    const { data, error, response } = await authorizedUsersClient(guard.token).GET('/v1/profiles', {
-      params: { query: { ids } },
-    });
+    const { data, error, response } = await authorizedUsersClient(guard.token, event).GET(
+      '/v1/profiles',
+      {
+        params: { query: { ids } },
+      },
+    );
     if (error || !response?.ok) {
       return respondError(event, response?.status ?? 500, {
         code: 'internal',

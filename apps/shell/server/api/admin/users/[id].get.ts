@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
     return respondError(event, user.status, user.body);
   }
 
-  const { data: profile, response } = await authorizedUsersClient(guard.token).GET(
+  const { data: profile, response } = await authorizedUsersClient(guard.token, event).GET(
     '/v1/profiles/{user_id}',
     {
       params: { path: { user_id: id } },

@@ -14,14 +14,17 @@
 | M3 BFF (httpOnly cookie-сессии, прозрачный refresh, rate limit, CSRF guard)                   | ✅     |
 | M4 микрофронты (MF 2.0 islands), Storybook (interaction/a11y/visual), формы входа/регистрации | ✅     |
 | M5 users-service (профили, NATS-consumer, gRPC) + живая админка (таблица, карточка, RBAC)     | ✅     |
-| M6 наблюдаемость (OTel, Grafana) · M7 Helm/K8s · M8 e2e-полировка                             | ⏳     |
+| M6 наблюдаемость: OTel-трейсы (Jaeger), метрики (Prometheus), Grafana                         | ✅     |
+| M7 Helm/K8s · M8 e2e-полировка                                                                | ⏳     |
 
 Что уже работает end-to-end: регистрация → вход → cookie-сессия → прозрачный refresh →
 выход; JWKS; события user.\*/role_changed в NATS; **профили создаются consumer'ом
 users-service по user.created** (включая backfill из истории стрима); админка:
 агрегированный список (auth + users через BFF), карточка с редактированием
 профиля/статуса/ролей, RBAC-guard; Storybook дизайн-системы с тремя видами тестов
-компонентов; федерация островов в реальном браузере.
+компонентов; федерация островов в реальном браузере; **сквозной трейс
+браузер → BFF → auth → NATS → users** (один traceID, видно в Jaeger),
+метрики бизнес-событий в Prometheus.
 
 ## Структура
 

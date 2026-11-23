@@ -31,6 +31,8 @@ test('admin видит таблицу пользователей и открыв
     timeout: 20_000,
   });
 
+  // В БД накопились тест-пользователи: ищем админа через серверный фильтр.
+  await page.getByLabel('Поиск по email').fill(ADMIN_EMAIL);
   // Список пришёл из auth-service, профили — из users-service.
   // Проверяем ячейку таблицы (email администратора есть и в шапке — getByText дал бы strict violation).
   await expect(page.getByRole('cell', { name: ADMIN_EMAIL })).toBeVisible({ timeout: 15_000 });

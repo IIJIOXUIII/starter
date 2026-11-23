@@ -22,9 +22,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/oapi-codegen/runtime/types"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/rosterra/platform/pkg/httpx"
 	"github.com/rosterra/platform/pkg/jwtx"
+	"github.com/rosterra/platform/pkg/otelx"
 	"github.com/rosterra/services/users/internal/config"
 	"github.com/rosterra/services/users/internal/domain"
 	"github.com/rosterra/services/users/internal/service"
@@ -60,10 +62,19 @@ type Server struct {
 }
 
 // NewServer собирает strict-handler, middleware аутентификации и health-checks.
-func NewServer(cfg *config.Config, log *slog.Logger, svc *service.Service, verifier *jwtx.Verifier) *Server {
+// Зависимость от otel (не используется напрямую) фиксирует порядок fx-конструирования:
+// глобальный TracerProvider должен быть установлен до создания middleware.
+func NewServer(cfg *config.Config, log *slog.Logger, svc *service.Service, verifier *jwtx.Verifier, _ *otelx.OTel) *Server {
 	s := &Server{svc: svc, verifier: verifier, log: log}
 
 	router := chi.NewRouter()
+
+	// Наблюдаемость: метрики (route-лейбл из chi) + серверные спаны.
+	// (Все middleware — строго до регистрации маршрутов.)
+	router.Use(otelx.MetricsMiddleware(cfg.ServiceName))
+	router.Use(otelx.TracingMiddleware(cfg.ServiceName))
+	router.Get("/metrics", promhttp.Handler().ServeHTTP)
+
 	registerHealthChi(router, func() bool { return true })
 
 	strict := gen.NewStrictHandlerWithOptions(s, nil, gen.StrictHTTPServerOptions{

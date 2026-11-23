@@ -1,12 +1,14 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 
+	"github.com/rosterra/platform/pkg/otelx"
 	"github.com/rosterra/services/auth/internal/domain"
 )
 
@@ -15,7 +17,9 @@ const eventSource = "/rosterra/auth"
 
 // buildEvent собирает OutboxEvent с CloudEvents 1.0 payload.
 // Публикация в NATS выполняется релеем, запись — в той же транзакции, что и изменение.
-func buildEvent(eventType string, data any) (domain.OutboxEvent, error) {
+// В конверт пишется traceparent текущего контекста: consumer события
+// продолжает тот же трейс (сквозная корреляция auth → users).
+func buildEvent(ctx context.Context, eventType string, data any) (domain.OutboxEvent, error) {
 	dataRaw, err := json.Marshal(data)
 	if err != nil {
 		return domain.OutboxEvent{}, fmt.Errorf("marshal event data: %w", err)
@@ -27,6 +31,7 @@ func buildEvent(eventType string, data any) (domain.OutboxEvent, error) {
 		Source:      eventSource,
 		Time:        time.Now().UTC(),
 		Data:        dataRaw,
+		Traceparent: otelx.InjectCloudEvent(ctx),
 	}
 	raw, err := json.Marshal(envelope)
 	if err != nil {

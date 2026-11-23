@@ -30,6 +30,9 @@ type Config struct {
 	JWTSeed string
 	// RelayInterval — интервал опроса outbox-релея.
 	RelayInterval time.Duration
+	// OTELEndpoint — базовый URL OTLP HTTP-коллектора (Jaeger).
+	// Пусто → трассировка выключена (noop).
+	OTELEndpoint string
 }
 
 // Load читает конфигурацию из окружения, подставляя безопасные значения по умолчанию.
@@ -46,5 +49,6 @@ func Load() *Config {
 		NATSURL:       configx.String("NATS_URL", "nats://localhost:4222"),
 		JWTSeed:       configx.String("JWT_SEED", ""),
 		RelayInterval: configx.Duration("RELAY_INTERVAL", 1*time.Second),
+		OTELEndpoint:  configx.String("OTEL_ENDPOINT", ""),
 	}
 }

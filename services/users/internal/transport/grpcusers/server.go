@@ -41,6 +41,7 @@ func (s *Server) CreateProfile(ctx context.Context, req *usersv1.CreateProfileRe
 	if err != nil {
 		return nil, s.mapErr("create", err)
 	}
+	service.IncProfilesCreated("grpc")
 	return &usersv1.CreateProfileResponse{Profile: toProto(profile)}, nil
 }
 

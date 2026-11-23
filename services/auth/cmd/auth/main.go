@@ -20,6 +20,7 @@ import (
 
 	"github.com/rosterra/platform/pkg/jwtx"
 	"github.com/rosterra/platform/pkg/logger"
+	"github.com/rosterra/platform/pkg/otelx"
 	"github.com/rosterra/services/auth/internal/config"
 	"github.com/rosterra/services/auth/internal/domain"
 	"github.com/rosterra/services/auth/internal/repo/postgres"
@@ -40,6 +41,7 @@ func main() {
 		fx.Provide(
 			config.Load,
 			newLogger,
+			newOtel,
 			newPool,
 			newRedis,
 			newNATS,
@@ -70,6 +72,16 @@ func main() {
 
 func newLogger(cfg *config.Config) *slog.Logger {
 	return logger.New(cfg.LogLevel, cfg.ServiceName)
+}
+
+// newOtel инициализирует трассировку (OTLP → Jaeger); без OTEL_ENDPOINT — noop.
+func newOtel(cfg *config.Config) (*otelx.OTel, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	return otelx.Setup(ctx, otelx.Config{
+		ServiceName:  "rosterra/auth",
+		OTLPEndpoint: cfg.OTELEndpoint,
+	})
 }
 
 // newPool открывает пул и поднимает миграции до создания репозиториев.
@@ -140,8 +152,8 @@ func (a *jwtIssuerAdapter) Issue(userID, sessionID uuid.UUID, email string, role
 	return a.issuer.Issue(userID, sessionID, email, roles)
 }
 
-func newRelay(cfg *config.Config, ob domain.OutboxRepo, js nats.JetStreamContext, log *slog.Logger) *mq.Relay {
-	return mq.NewRelay(ob, js, cfg.RelayInterval, log)
+func newRelay(cfg *config.Config, ob domain.OutboxRepo, js nats.JetStreamContext, log *slog.Logger, otelInst *otelx.OTel) *mq.Relay {
+	return mq.NewRelay(ob, js, cfg.RelayInterval, log, otelInst)
 }
 func newServiceConfig(cfg *config.Config) service.Config {
 	return service.Config{
@@ -152,7 +164,7 @@ func newServiceConfig(cfg *config.Config) service.Config {
 }
 
 // registerLifecycle — старт/стоп HTTP-сервера и релея.
-func registerLifecycle(lc fx.Lifecycle, srv *apphttp.Server, relay *mq.Relay, natsc *NATSConnection, log *slog.Logger) {
+func registerLifecycle(lc fx.Lifecycle, srv *apphttp.Server, relay *mq.Relay, natsc *NATSConnection, otelInst *otelx.OTel, log *slog.Logger) {
 	appCtx, cancel := context.WithCancel(context.Background())
 
 	lc.Append(fx.Hook{
@@ -173,6 +185,9 @@ func registerLifecycle(lc fx.Lifecycle, srv *apphttp.Server, relay *mq.Relay, na
 				return err
 			}
 			natsc.Conn.Drain()
+			if err := otelInst.Shutdown(ctx); err != nil {
+				log.Warn("otel shutdown", "err", err)
+			}
 			log.Info("auth service stopped")
 			return nil
 		},

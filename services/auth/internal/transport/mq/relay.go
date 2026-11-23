@@ -7,12 +7,18 @@ package mq
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 
+	"github.com/rosterra/platform/pkg/otelx"
 	"github.com/rosterra/services/auth/internal/domain"
 )
 
@@ -28,17 +34,20 @@ type Relay struct {
 	js       nats.JetStreamContext
 	log      *slog.Logger
 	interval time.Duration
+	tracer   trace.Tracer
 	stop     chan struct{}
 	done     chan struct{}
 }
 
 // NewRelay создаёт релей (интервал опроса — обычно 1s).
-func NewRelay(ob domain.OutboxRepo, js nats.JetStreamContext, interval time.Duration, log *slog.Logger) *Relay {
+// otel — фиксация порядка инициализации (см. NewServer).
+func NewRelay(ob domain.OutboxRepo, js nats.JetStreamContext, interval time.Duration, log *slog.Logger, _ *otelx.OTel) *Relay {
 	return &Relay{
 		ob:       ob,
 		js:       js,
 		log:      log,
 		interval: interval,
+		tracer:   otel.Tracer("rosterra/auth/outbox-relay"),
 		stop:     make(chan struct{}),
 		done:     make(chan struct{}),
 	}
@@ -104,14 +113,29 @@ func (r *Relay) drain(ctx context.Context) error {
 
 	published := make([]uuid.UUID, 0, len(events))
 	for _, evt := range events {
-		if _, err := r.js.PublishMsg(&nats.Msg{
+		// Спан публикации: трейс события продолжается в consumer'е
+		// (traceparent из CloudEvents-конверта + headers NATS).
+		ctx, span := r.tracer.Start(ctx, fmt.Sprintf("outbox.publish %s", evt.Type),
+			trace.WithSpanKind(trace.SpanKindProducer),
+			trace.WithAttributes(
+				attribute.String("messaging.system", "nats"),
+				attribute.String("messaging.destination.name", evt.Subject()),
+				attribute.String("messaging.message.id", evt.ID.String()),
+			),
+		)
+		msg := &nats.Msg{
 			Subject: evt.Subject(),
 			Data:    evt.Payload,
 			Header:  nats.Header{"Nats-Msg-Id": []string{evt.ID.String()}}, // дедупликация в JetStream
-		}, nats.AckWait(5*time.Second)); err != nil {
+		}
+		otelx.InjectNATS(ctx, msg)
+		if _, err := r.js.PublishMsg(msg, nats.AckWait(5*time.Second)); err != nil {
+			span.SetStatus(codes.Error, err.Error())
+			span.End()
 			r.log.Error("publish event", "id", evt.ID, "type", evt.Type, "err", err)
 			break
 		}
+		span.End()
 		published = append(published, evt.ID)
 	}
 

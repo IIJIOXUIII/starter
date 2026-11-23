@@ -61,7 +61,7 @@ export async function callAuth<T>(
   const access = readAccess(event);
 
   if (access) {
-    const res = await op(authorizedAuthClient(access));
+    const res = await op(authorizedAuthClient(access, event));
     if (res.response?.status !== 401) {
       return toResult(res, access);
     }
@@ -76,7 +76,7 @@ export async function callAuth<T>(
     };
   }
 
-  const res = await op(authorizedAuthClient(refreshed.tokens.access_token));
+  const res = await op(authorizedAuthClient(refreshed.tokens.access_token, event));
   return toResult(res, refreshed.tokens.access_token);
 }
 

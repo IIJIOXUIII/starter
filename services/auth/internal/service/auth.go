@@ -112,7 +112,7 @@ func (s *Service) Register(ctx context.Context, email, password string, name *st
 	}
 
 	user := domain.NewUser(email, name)
-	event, err := buildEvent(domain.EventUserCreated, toPublicUser(user))
+	event, err := buildEvent(ctx, domain.EventUserCreated, toPublicUser(user))
 	if err != nil {
 		return nil, err
 	}

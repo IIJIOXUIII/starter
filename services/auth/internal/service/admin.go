@@ -48,7 +48,7 @@ func (s *Service) SetStatus(ctx context.Context, id uuid.UUID, status domain.Use
 			payload["reason"] = *reason
 		}
 	}
-	event, err := buildEvent(eventType, payload)
+	event, err := buildEvent(ctx, eventType, payload)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (s *Service) SetRoles(ctx context.Context, id uuid.UUID, roles []domain.Rol
 		}
 	}
 
-	event, err := buildEvent(domain.EventRoleChanged, map[string]any{
+	event, err := buildEvent(ctx, domain.EventRoleChanged, map[string]any{
 		"user_id": id.String(),
 		"roles":   roles,
 	})

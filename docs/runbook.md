@@ -66,6 +66,27 @@ cd apps/shell && pnpm exec playwright test -c playwright.m4.config.ts   # M4: о
 cd apps/shell && pnpm exec playwright test -c playwright.m5.config.ts   # M5: живая админка
 ```
 
+## Наблюдаемость (M6)
+
+```powershell
+docker compose -f deploy/compose/docker-compose.dev.yml up -d   # включая jaeger/prometheus/grafana
+```
+
+| Компонент   | Где                                   | Что смотреть                                      |
+| ----------- | ------------------------------------- | ------------------------------------------------- |
+| Jaeger (UI) | http://localhost:16686                | трейсы; сервисы `rosterra/auth`, `rosterra/users` |
+| Prometheus  | http://localhost:9090                 | таргеты auth/users (`/metrics`), алерты — M7+     |
+| Grafana     | http://localhost:3001 (admin/grafana) | дашборды; datasource'ы преднастроены              |
+
+Трассировка включается переменной `OTEL_ENDPOINT=http://localhost:4318` при запуске
+Go-сервисов (пусто → noop). Метрики доступны всегда: `:8081/metrics`, `:8082/metrics`.
+
+Сквозной трейс (проверено e2e): `POST /api/auth/register` (браузер → BFF → traceparent)
+→ `[rosterra/auth] POST /v1/register` → outbox-событие (CE-extension traceparent)
+→ `[rosterra/users] users.event.consume user.created` — один traceID на все три звена.
+Бизнес-счётчики: `auth_register_total`, `auth_login_total`, `auth_refresh_total`,
+`users_profiles_created_total`, `http_requests_total{route}`.
+
 ## users-service (M5)
 
 Профили пользователей: HTTP `:8082` (strict-server users.yaml), gRPC `:9082` (users.v1),

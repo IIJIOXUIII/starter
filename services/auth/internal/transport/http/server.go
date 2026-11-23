@@ -23,9 +23,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/oapi-codegen/runtime/types"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/rosterra/platform/pkg/httpx"
 	"github.com/rosterra/platform/pkg/jwtx"
+	"github.com/rosterra/platform/pkg/otelx"
 	"github.com/rosterra/services/auth/internal/config"
 	"github.com/rosterra/services/auth/internal/domain"
 	"github.com/rosterra/services/auth/internal/service"
@@ -77,10 +79,19 @@ type Server struct {
 }
 
 // NewServer собирает strict-handler, middleware аутентификации и health-checks.
-func NewServer(cfg *config.Config, log *slog.Logger, svc *service.Service, verifier *jwtx.Verifier, issuer *jwtx.Issuer) *Server {
+// Зависимость от otel (не используется напрямую) фиксирует порядок fx-конструирования:
+// глобальный TracerProvider должен быть установлен до создания middleware.
+func NewServer(cfg *config.Config, log *slog.Logger, svc *service.Service, verifier *jwtx.Verifier, issuer *jwtx.Issuer, _ *otelx.OTel) *Server {
 	s := &Server{svc: svc, verifier: verifier, issuer: issuer, log: log}
 
 	router := chi.NewRouter()
+
+	// Наблюдаемость: метрики (route-лейбл из chi) + серверные спаны.
+	// (Все middleware — строго до регистрации маршрутов.)
+	router.Use(otelx.MetricsMiddleware(cfg.ServiceName))
+	router.Use(otelx.TracingMiddleware(cfg.ServiceName))
+	router.Get("/metrics", promhttp.Handler().ServeHTTP)
+
 	registerHealthChi(router, func() bool { return true })
 
 	strict := gen.NewStrictHandlerWithOptions(s, nil, gen.StrictHTTPServerOptions{
@@ -238,12 +249,16 @@ func (s *Server) Register(ctx context.Context, req gen.RegisterRequestObject) (g
 	sess, err := s.svc.Register(ctx, string(req.Body.Email), req.Body.Password, req.Body.Name)
 	switch {
 	case err == nil:
+		registerTotal.WithLabelValues("ok").Inc()
 		return gen.Register201JSONResponse(tokensToGen(sess)), nil
 	case errors.As(err, &ve):
+		registerTotal.WithLabelValues("validation").Inc()
 		return gen.Register400JSONResponse(validationResp(ve)), nil
 	case errors.Is(err, domain.ErrEmailTaken):
+		registerTotal.WithLabelValues("email_taken").Inc()
 		return gen.Register409JSONResponse(errBody(codeEmailTaken)), nil
 	default:
+		registerTotal.WithLabelValues("error").Inc()
 		return nil, s.internalErr(err, "register")
 	}
 }
@@ -258,14 +273,19 @@ func (s *Server) Login(ctx context.Context, req gen.LoginRequestObject) (gen.Log
 	sess, err := s.svc.Login(ctx, string(req.Body.Email), req.Body.Password, remember)
 	switch {
 	case err == nil:
+		loginTotal.WithLabelValues("ok").Inc()
 		return gen.Login200JSONResponse(tokensToGen(sess)), nil
 	case errors.As(err, &ve):
+		loginTotal.WithLabelValues("validation").Inc()
 		return gen.Login401JSONResponse(validationResp(ve)), nil
 	case errors.Is(err, domain.ErrInvalidCredentials):
+		loginTotal.WithLabelValues("invalid_credentials").Inc()
 		return gen.Login401JSONResponse(errBody(codeInvalidCredentials)), nil
 	case errors.Is(err, domain.ErrAccountLocked):
+		loginTotal.WithLabelValues("locked").Inc()
 		return gen.Login423JSONResponse(errBody(codeAccountLocked)), nil
 	default:
+		loginTotal.WithLabelValues("error").Inc()
 		return nil, s.internalErr(err, "login")
 	}
 }
@@ -275,12 +295,16 @@ func (s *Server) Refresh(ctx context.Context, req gen.RefreshRequestObject) (gen
 	sess, err := s.svc.Refresh(ctx, req.Body.RefreshToken)
 	switch {
 	case err == nil:
+		refreshTotal.WithLabelValues("ok").Inc()
 		return gen.Refresh200JSONResponse(tokensToGen(sess)), nil
 	case errors.Is(err, domain.ErrAccountLocked):
+		refreshTotal.WithLabelValues("rejected").Inc()
 		return gen.Refresh401JSONResponse(errBody(codeAccountLocked)), nil
 	case errors.Is(err, domain.ErrInvalidRefreshToken), errors.Is(err, domain.ErrSessionRevoked):
+		refreshTotal.WithLabelValues("rejected").Inc()
 		return gen.Refresh401JSONResponse(errBody(codeInvalidRefresh)), nil
 	default:
+		refreshTotal.WithLabelValues("error").Inc()
 		return nil, s.internalErr(err, "refresh")
 	}
 }

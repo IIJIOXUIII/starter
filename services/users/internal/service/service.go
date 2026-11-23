@@ -82,7 +82,6 @@ func (s *Service) CreateProfile(ctx context.Context, userID uuid.UUID, displayNa
 	}
 	return s.profiles.GetByID(ctx, userID)
 }
-
 // GetProfile возвращает профиль.
 func (s *Service) GetProfile(ctx context.Context, userID uuid.UUID) (*domain.Profile, error) {
 	if errors.Is(ctx.Err(), context.Canceled) {
@@ -156,10 +155,10 @@ func (s *Service) HandleUserCreated(ctx context.Context, eventID uuid.UUID, user
 	if _, err := s.CreateProfile(ctx, userID, displayName, ""); err != nil {
 		return fmt.Errorf("create profile from event: %w", err)
 	}
+	IncProfilesCreated("event")
 	s.log.Info("profile created from event", "user_id", userID)
 	return nil
 }
-
 // emitUpdated кладёт profile.updated в outbox.
 func (s *Service) emitUpdated(ctx context.Context, p *domain.Profile) error {
 	payload := map[string]any{

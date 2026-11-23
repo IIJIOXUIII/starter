@@ -1,0 +1,20 @@
+# Prometheus: скрейп метрик Go-сервисов, работающих на хосте (dev-стек).
+# В Kubernetes (M7) таргеты заменятся на ServiceMonitor/pod-аннотации.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: auth-service
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['host.docker.internal:8081']
+
+  - job_name: users-service
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['host.docker.internal:8082']
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
